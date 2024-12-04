@@ -13,10 +13,17 @@ Route::post('change-password', [LoginController::class, 'change_password']);
 
 
 
+
+
 Route::post('user-add-edit', [UserController::class, 'user_add_edit']);
 Route::post('user-list', [UserController::class, 'user_list']);
 Route::post('user-details', [UserController::class, 'user_details']);
 
+
+Route::post('role-add-edit', [UserController::class, 'role_add_and_edit']);
+
+
+Route::post('permission-list', [UserController::class, 'permission_list']);
 
 // User
 

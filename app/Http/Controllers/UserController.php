@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Models\Permission;
+use App\Models\Modules;
+
 use Illuminate\Support\Arr;
 
 class UserController extends Controller
@@ -54,6 +57,25 @@ class UserController extends Controller
             ]);
         }
 
+        $moduleIds      = explode(',', $check_role->user_module_ids);
+        $permissionIds  = explode(',',$check_role->user_permission_ids);
+
+        $existingModules = Modules::whereIn('module_id', $moduleIds)->pluck('module_id')->toArray();
+
+        if (count($existingModules) !== count($moduleIds)) {
+            return response()->json([
+                'status' => 500,
+                'message' => 'One or more modules do not exist.',
+            ]);
+        }    
+        $existingPermissions = Permission::whereIn('permission_id', $permissionIds)->pluck('permission_id')->toArray();
+        if (count($existingPermissions) !== count($permissionIds)) {
+            return response()->json([
+                'status' => 500,
+                'message' => 'One or more permissions do not exist.',
+            ]);
+        }
+
         if (empty($params['user_id'])){
             $get_data = User::get_data_by_phone_no($params['user_phone_number']);
             if (!empty($get_data)){
@@ -63,15 +85,16 @@ class UserController extends Controller
                 ]); 
             }
             $user = new User();
-            $user->user_name         = $params['user_name'];
-            $user->user_address      = $params['user_address'];
-            $user->user_phone_number = $params['user_phone_number'];
-            $user->user_role_id      = $params['user_role'];
-            $user->user_hash_pass    = Hash::Make('Test@123'); 
-            $user->user_password     = 'Test@123'; 
-            $user->user_sweetword    = 'Test@123'; 
-            
-            
+            $user->user_name             = $params['user_name'];
+            $user->user_address          = $params['user_address'];
+            $user->user_phone_number     = $params['user_phone_number'];
+            $user->user_role_id          = $params['user_role'];
+            $user->user_hash_pass        = Hash::Make('Test@123'); 
+            $user->user_password         = 'Test@123'; 
+            $user->user_sweetword        = 'Test@123'; 
+            $user->user_module_ids       = $moduleIds;
+            $user->user_permission_ids   = $permissionIds;
+        
             $user->save();
         
             return response()->json([
@@ -87,9 +110,12 @@ class UserController extends Controller
                     'message' => 'User not found.',
                 ]);
             }
-            $user->user_name = $params['user_name'];
-            $user->user_address = $params['user_address'];
-            $user->user_phone_number = $params['user_phone_number'];
+            $user->user_name             = $params['user_name'];
+            $user->user_address          = $params['user_address'];
+            $user->user_phone_number     = $params['user_phone_number'];
+            $user->user_module_ids       = $moduleIds;
+            $user->user_permission_ids   = $permissionIds;
+        
             $user->save();
             return response()->json([
                 'status' => 200,
@@ -223,6 +249,100 @@ class UserController extends Controller
 
 
     // Roles and permissions
+    public function permission_list(Request $request){
+        
+        $permission_list = Permission::where('is_delete', false)->get();  
 
+        return response()->json([
+            'status' => 200,
+            'message' => 'Permission list fetch successfully.',
+            'data' => $permission_list
+   
+        ]);
+    }
+
+
+    // Roles 
+
+    public function role_add_and_edit(Request $request){
+        $params = $request->all();
+             
+
+        $rules = [   
+            'role_id'           => ['nullable','string'],
+            'role_name'         => ['required','string'],  
+            'user_permission'   => ['required','string','max:255'],
+            'user_module'       => ['required','string','max:13'],
+        ]; 
+        $messages = [
+            'role_name.required'         => 'Role name is required.',
+            'role_name.string'           => 'Role name must be a string.',
+            'user_permission.required'   => 'Please provide permission',
+            'user_module.required'       => 'Please provide modules'
+            
+        ]; 
+        $validator = Validator::make($params, $rules, $messages);
+        
+        if($validator->fails()){
+            return response()->json([
+                'status' => 500,
+                'message' => Arr::flatten($validator->errors()->toArray())[0], 
+                'errors'  => $validator->errors(), 
+            ]);
+        } 
+        $moduleIds = explode(',', $params['user_module']);
+        $permissionIds = explode(',', $params['user_permission']);
+
+        $existingModules = Modules::whereIn('module_id', $moduleIds)->pluck('module_id')->toArray();
+
+        if (count($existingModules) !== count($moduleIds)) {
+            return response()->json([
+                'status' => 500,
+                'message' => 'One or more modules do not exist.',
+            ]);
+        }    
+        $existingPermissions = Permission::whereIn('permission_id', $permissionIds)->pluck('permission_id')->toArray();
+        if (count($existingPermissions) !== count($permissionIds)) {
+            return response()->json([
+                'status' => 500,
+                'message' => 'One or more permissions do not exist.',
+            ]);
+        }
+
+       
+        if (empty($params['role_id'])){
+           
+            $user_role = new UserRole();
+            $user_role->role_name         = $params['role_name'];
+            $user_role->role_module_ids = implode(',', $moduleIds);
+            $user_role->role_permission_ids = implode(',', $permissionIds);
+
+            $user_role->save();
+        
+            return response()->json([
+                'status' => 200,
+                'message' => 'User Role added successfully!'
+            ]);
+        }else{
+            $check_role = UserRole::get_role_by_id($params['role_id']);
+            if (empty($check_role)){
+                return response()->json([
+                    'status' => 500,
+                    'message' => 'User role does not exist'
+                ]);
+            }
+    
+            $check_role->role_name = $params['role_name'];
+            
+            $check_role->role_module_ids = implode(',', $moduleIds);
+            $check_role->role_permission_ids = implode(',', $permissionIds);
+    
+            $check_role->save();
+            return response()->json([
+                'status' => 200,
+                'message' => 'Role updated successfully!'
+            ]);
+        }
+    }
     
 }
