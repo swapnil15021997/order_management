@@ -18,5 +18,9 @@ class Branch extends Model
         'branch_added_by',
     ];
 
+    public static function get_branch_by_id($branch_id){
+        $branch = Branch::where('branch_id',$branch_id)->first();
+        return $branch;
+    }
 
 }

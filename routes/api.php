@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\OrderController;
 // Route::middleware('/api')->group(function () {
 
 Route::post('login', [LoginController::class, 'login']);
@@ -34,6 +35,10 @@ Route::post('branch-list', [BranchController::class, 'branch_list']);
 Route::post('branch-details', [BranchController::class, 'branch_details']);
 Route::post('branch-remove', [BranchController::class, 'branch_remove']);
 
+Route::post('order-add', [OrderController::class, 'order_add']);
+Route::post('order-list', [OrderController::class, 'order_list']);
+Route::post('order-details', [OrderController::class, 'order_details']);
+Route::post('order-remove', [OrderController::class, 'order_remove']);
 
 
 
